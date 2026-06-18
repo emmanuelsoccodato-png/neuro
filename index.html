@@ -83,6 +83,7 @@ h2 {font-size:18px;font-weight:600;margin-bottom:12px;color:#1d4ed8}
   <button class="tab" data-panel="6" style="background:#fef9c3;border-color:#fde047">Neuroendocrinologie</button>
   <button class="tab" data-panel="7">Quiz modulaires</button>
   <button class="tab" data-panel="8">Sources</button>
+  <button class="tab" data-panel="9">🗺 Carte heuristique</button>
 </div>
 
 <div class="panel active" data-panel-id="0">
@@ -225,9 +226,226 @@ h2 {font-size:18px;font-weight:600;margin-bottom:12px;color:#1d4ed8}
   </div>
 </div>
 
+<div class="panel" data-panel-id="9">
+  <div class="module-badge">Carte heuristique</div>
+  <h2>Carte heuristique — Auteurs & concepts</h2>
+  <p class="sub">Cliquez sur chaque bulle pour déployer les concepts associés</p>
+
+  <div id="mindmap" style="font-family:system-ui,sans-serif">
+
+    <!-- Styles carte heuristique -->
+    <style>
+    .mm-root {display:flex;flex-direction:column;gap:12px;margin-top:1rem}
+    .mm-branch {border-radius:12px;overflow:hidden;border:1px solid #ddd;background:#fff}
+    .mm-branch-header {display:flex;align-items:center;justify-content:space-between;padding:14px 16px;cursor:pointer;user-select:none;transition:background .2s}
+    .mm-branch-header:hover {filter:brightness(.97)}
+    .mm-branch-title {font-size:14px;font-weight:700;display:flex;align-items:center;gap:10px}
+    .mm-branch-title .dot {width:12px;height:12px;border-radius:50%;flex-shrink:0}
+    .mm-arrow {font-size:12px;color:#888;transition:transform .3s}
+    .mm-branch.open .mm-arrow {transform:rotate(90deg)}
+    .mm-children {display:none;padding:0 14px 14px 14px;gap:8px}
+    .mm-branch.open .mm-children {display:flex;flex-direction:column}
+    .mm-concept {border-radius:8px;overflow:hidden;border:1px solid transparent}
+    .mm-concept-header {display:flex;align-items:center;justify-content:space-between;padding:10px 12px;cursor:pointer;transition:background .2s}
+    .mm-concept-header:hover {filter:brightness(.97)}
+    .mm-concept-label {font-size:13px;font-weight:600}
+    .mm-concept-sub {font-size:11px;opacity:.7;margin-top:2px}
+    .mm-concept-body {display:none;padding:10px 12px;font-size:12px;line-height:1.7;border-top:1px solid rgba(0,0,0,.08)}
+    .mm-concept.open .mm-concept-body {display:block}
+    .mm-concept .mm-arrow {font-size:11px}
+    .mm-author-tag {display:inline-block;font-size:10px;padding:2px 7px;border-radius:9px;background:rgba(0,0,0,.07);margin-right:4px;margin-bottom:4px;font-weight:600}
+    @media(max-width:600px){.mm-branch-title{font-size:13px}.mm-concept-label{font-size:12px}}
+    </style>
+
+    <div class="mm-root" id="mm-root"></div>
+  </div>
+</div>
+
 </div>
 
 <script>
+// DONNÉES CARTE HEURISTIQUE
+const mindmapData = [
+  {
+    id:'nm', label:'Neurones miroirs', color:'#3b82f6', bg:'#eff6ff', border:'#bfdbfe',
+    author:'Rizzolatti & Craighero (2004)',
+    concepts:[
+      {label:'Découverte — Aire F5', sub:'Rizzolatti et al. 1992-1996', color:'#dbeafe', border:'#93c5fd',
+       text:'Découverte dans l\'aire F5 du cortex prémoteur ventral du macaque. Activation lors exécution ET observation d\'une action dirigée vers un but. Homologue humain : aire de Broca (BA 44/45).'},
+      {label:'Invariance modale', sub:'Neurones audiovisuels', color:'#dbeafe', border:'#93c5fd',
+       text:'Certains neurones miroirs répondent au son seul d\'une action (sans input visuel). Encodage d\'une représentation abstraite de l\'action indépendante du canal sensoriel.'},
+      {label:'Shared manifold', sub:'Gallese 2001, 2003', color:'#dbeafe', border:'#93c5fd',
+       text:'Espace intersubjectif rendu possible par les neurones miroirs. 3 niveaux : subpersonnel (automatique), personnel (embodied), interpersonnel (empathie, intersubjectivité primaire).'},
+      {label:'Contagion affective primitive', sub:'Hatfield, Cacioppo & Rapson 1993', color:'#dbeafe', border:'#93c5fd',
+       text:'Mimétisme facial/postural automatique → convergence états internes via feedback facial. Substrat : neurones miroirs + insula antérieure. Bidirectionnel.'},
+      {label:'Critiques méthodologiques', sub:'Hickok 2009', color:'#fee2e2', border:'#fca5a5',
+       text:'Signal BOLD ≠ activité neuronale directe. Corrélation ≠ causalité. Données lésionnelles discordantes. Modèles alternatifs perceptifs. ⚠️ Débat actif.'},
+      {label:'Contre-transfert corporel', sub:'Application clinique', color:'#dbeafe', border:'#93c5fd',
+       text:'Résonance miroir + insula → sensations corporelles thérapeute. Utilisation comme signal diagnostique. Méta-cognition somatique (épochè).'},
+      {label:'Hypothèse TSA', sub:'⚠️ Non confirmée', color:'#fef9c3', border:'#fde047',
+       text:'Dysfonctionnement système miroir → difficultés compréhension sociale intuitive dans TSA. Données mixtes, hypothèse non confirmée. À présenter avec nuance.'}
+    ]
+  },
+  {
+    id:'ms', label:'Marqueur somatique', color:'#059669', bg:'#f0fdf4', border:'#bbf7d0',
+    author:'Damasio (1994) — L\'Erreur de Descartes',
+    concepts:[
+      {label:'Postulat central', sub:'Contre dualisme cartésien', color:'#dcfce7', border:'#86efac',
+       text:'Émotions = prérequis fonctionnel à la décision rationnelle. Marqueurs somatiques (signaux corporels) nécessaires à la décision. Contre le dualisme corps/esprit de Descartes.'},
+      {label:'Cortex préfrontal ventromédian', sub:'CPFvm — siège des marqueurs', color:'#dcfce7', border:'#86efac',
+       text:'Acquisition et déploiement des marqueurs somatiques. Lésion CPFvm → QI normal + décisions désastreuses (syndrome dysexécutif affectif).'},
+      {label:'Phineas Gage', sub:'Cas historique 1848', color:'#dcfce7', border:'#86efac',
+       text:'Barre de fer traverse CPFvm. Intelligence préservée, personnalité transformée, décisions sociales désastreuses. Réanalyse Damasio 1994 : dissociation raisonnement/compétence décisionnelle.'},
+      {label:'Iowa Gambling Task', sub:'Paradigme expérimental', color:'#dcfce7', border:'#86efac',
+       text:'Sujets sains : réponses cutanées anticipatoires avant choix risqués. Patients CPFvm : absence de ces marqueurs → persistent dans choix désavantageux.'},
+      {label:'Intéroception — Insula', sub:'Craig 2009', color:'#dcfce7', border:'#86efac',
+       text:'Voie : afférences viscérales → NTS → thalamus → insula postérieure → insula antérieure (conscience corporelle). Insula antérieure = substrat conscience somatique.'},
+      {label:'Suspension du jugement', sub:'Épochè phénoménologique', color:'#dcfce7', border:'#86efac',
+       text:'Méta-cognition somatique : percevoir résonance corporelle sans contamination. Distinction résonance (utilisable) / contamination (débordement affectif).'}
+    ]
+  },
+  {
+    id:'pv', label:'Théorie polyvagale', color:'#7c3aed', bg:'#f5f3ff', border:'#ddd6fe',
+    author:'Porges (2011) — ⚠️ Théorie controversée',
+    concepts:[
+      {label:'Hiérarchie phylogénétique', sub:'3 circuits SNA', color:'#ede9fe', border:'#c4b5fd',
+       text:'Vague ventral myélinisé (sécurité) > Sympathique (danger) > Vague dorsal (menace vitale). Recrutement en ordre inverse de la sévérité de la menace.'},
+      {label:'Vague ventral — Engagement social', sub:'Noyau ambigu', color:'#ede9fe', border:'#c4b5fd',
+       text:'Nerfs crâniens V, VII, IX, XI, XII. Régule expression faciale, prosodie, orientation auditive. Condition neurobiologique de l\'attachement.'},
+      {label:'Système sympathique — Fight/flight', sub:'Mobilisation danger', color:'#ede9fe', border:'#c4b5fd',
+       text:'Tachycardie, vasoconstriction périphérique, mobilisation musculaire. Fenêtre de tolérance (Siegel). Sortie supérieure = anxiété/panique.'},
+      {label:'Vague dorsal — Freeze/faint', sub:'Noyau dorsal vague', color:'#ede9fe', border:'#c4b5fd',
+       text:'Circuit reptilien. Bradycardie profonde, dissociation, sidération traumatique. Substrat neurobiologique du freeze lors d\'agression/viol.'},
+      {label:'Neuroception', sub:'Évaluation inconsciente sécurité/danger', color:'#ede9fe', border:'#c4b5fd',
+       text:'Processus inconscient pré-cortical. Intègre indices intéroceptifs + extéroceptifs (prosodie, visages). Dysfonctionnement → PTSD, anxiété (faux positifs menace).'},
+      {label:'⚠️ Controverses scientifiques', sub:'Grossman & Taylor 2007', color:'#fef9c3', border:'#fde047',
+       text:'Anatomie phylogénétique contestée. Pas de preuves solides hiérarchie vague ventral/dorsal. Utilité clinique ≠ validité théorique. À présenter avec nuance.'}
+    ]
+  },
+  {
+    id:'ne', label:'Neuroendocrinologie', color:'#d97706', bg:'#fffbeb', border:'#fde68a',
+    author:'McEwen & Stellar (1993) · Porges (2021)',
+    concepts:[
+      {label:'Cortisol — Axe HHS', sub:'Hypoth.–Hypoph.–Surrénale', color:'#fef3c7', border:'#fcd34d',
+       text:'CRH → ACTH → cortisol (zone fasciculée, 11β-hydroxylase). Rythme circadien (pic 6-8h). Rétrocontrôle négatif hippocampe (GR). ⚠️ Vérifier enzymes dans Bear (2016).'},
+      {label:'Adrénaline & Noradrénaline', sub:'Catécholamines', color:'#fef3c7', border:'#fcd34d',
+       text:'Tyrosine → DOPA → DA → NA → Adrénaline. Locus coeruleus (NA) : éveil, vigilance, PTSD. Propranolol (β-bloquant) : reconsolidation mémoire traumatique. ⚠️ Récepteurs α/β à vérifier.'},
+      {label:'Dopamine — 4 voies', sub:'Schultz, RPE', color:'#fef3c7', border:'#fcd34d',
+       text:'(1) Nigrostriée (Parkinson) (2) Mésolimbique (addiction, RPE Schultz) (3) Mésocorticale (TDAH, schizophrénie) (4) Tubéro-infundibulaire (prolactine). ⚠️ Anatomie exacte à vérifier.'},
+      {label:'Ocytocine & Vasopressine', sub:'Stallen 2012', color:'#fef3c7', border:'#fcd34d',
+       text:'Noyaux paraventriculaire/supraoptique. Ocytocine : lien social, mais nuance in-group/out-group (Stallen 2012) — peut renforcer méfiance out-group.'},
+      {label:'Sérotonine & Mélatonine', sub:'Tryptophane, raphé', color:'#fef3c7', border:'#fcd34d',
+       text:'Tryptophane → 5-HTP → sérotonine (raphé). Mélatonine : épiphyse, rythme circadien, mélanopsine → noyaux suprachiasmatiques.'},
+      {label:'Allostasie', sub:'McEwen & Stellar 1993', color:'#fef3c7', border:'#fcd34d',
+       text:'Adaptation via changement de points de référence homéostatiques. Charge allostatique = coût cumulatif de l\'adaptation chronique. Substrat neurobiologique du burnout.'}
+    ]
+  },
+  {
+    id:'sn', label:'Neuroanatomie SNC', color:'#0891b2', bg:'#ecfeff', border:'#a5f3fc',
+    author:'Bear, Connors & Paradiso (2016)',
+    concepts:[
+      {label:'Tronc cérébral', sub:'Bulbe, pont, mésencéphale', color:'#cffafe', border:'#67e8f9',
+       text:'Bulbe : NTS, noyaux vagues, centre cardio-respiratoire. Pont : locus coeruleus (NA), raphé (5-HT). Mésencéphale : substance noire (DA), ATV (DA), colliculi.'},
+      {label:'Système limbique', sub:'Amygdale, hippocampe, CCA', color:'#cffafe', border:'#67e8f9',
+       text:'Amygdale : détection menace, conditionnement peur (noyau basolatéral, central). Hippocampe : mémoire déclarative, LTP, atrophie dans PTSD/dépression. CCA : monitoring conflit, douleur affective.'},
+      {label:'Cortex préfrontal', sub:'DLPFC, vmPFC, OFC', color:'#cffafe', border:'#67e8f9',
+       text:'DLPFC : mémoire de travail, fonctions exécutives. vmPFC : marqueurs somatiques, régulation émotionnelle (Damasio). OFC : valeur récompense, flexibilité comportementale.'},
+      {label:'Ganglions de la base', sub:'Striatum, pallidum, accumbens', color:'#cffafe', border:'#67e8f9',
+       text:'Striatum dorsal (habitudes, motricité) + noyau accumbens (ventral, récompense, addiction). Voies directe/indirecte. Parkinson (perte DA nigrostriée), Huntington.'}
+    ]
+  },
+  {
+    id:'sp', label:'Synapse & Plasticité', color:'#be185d', bg:'#fdf2f8', border:'#fbcfe8',
+    author:'Kandel (2007) · Bear et al. (2016)',
+    concepts:[
+      {label:'Potentiel d\'action', sub:'Loi du tout-ou-rien', color:'#fce7f3', border:'#f9a8d4',
+       text:'Dépolarisation (ouverture Na+ VD) → repolarisation (ouverture K+ VD) → hyperpolarisation → repos (pompe Na+/K+ ATPase). Seuil -55mV. Propagation saltatorielle.'},
+      {label:'Neurotransmission', sub:'Ca²⁺, vésicules, récepteurs', color:'#fce7f3', border:'#f9a8d4',
+       text:'PA → canaux Ca²⁺ → fusion vésicules (SNARE) → libération NT → récepteurs ionotropes (rapides) ou métabotropes (lents, G-protein) → PPSE/PPSI → sommation spatiotemporelle.'},
+      {label:'LTP / LTD', sub:'Hebb, NMDA, CaMKII', color:'#fce7f3', border:'#f9a8d4',
+       text:'LTP : stimulation haute fréquence → co-activation AMPA+NMDA → entrée Ca²⁺ → CaMKII → insertion récepteurs AMPA. Postulat Hebb. LTD : stimulation basse fréquence → affaiblissement synaptique.'},
+      {label:'Plasticité structurale', sub:'Épines dendritiques, neurogénèse', color:'#fce7f3', border:'#f9a8d4',
+       text:'Épines champignon (matures, fortes) vs épines fines (immatures). Neurogénèse adulte : gyrus denté hippocampique. Régulation : exercice (↑), stress chronique (↓).'}
+    ]
+  },
+  {
+    id:'km', label:'Mémoire (Kandel)', color:'#15803d', bg:'#f0fdf4', border:'#bbf7d0',
+    author:'Kandel (2007) — Prix Nobel 2000',
+    concepts:[
+      {label:'Patient H.M.', sub:'Molaison — 1953', color:'#dcfce7', border:'#86efac',
+       text:'Résection bilatérale lobe temporal médian. Amnésie antérograde sévère. Mémoire procédurale préservée (apprentissage miroir). Dissociation mémoire déclarative (hippocampe) / procédurale (striatum).'},
+      {label:'Aplysie californica', sub:'Modèle moléculaire Kandel', color:'#dcfce7', border:'#86efac',
+       text:'20 000 neurones. Habituation vs sensibilisation du réflexe de retrait branchie. Court terme : modulation canaux. Long terme : synthèse protéique, nouvelles synapses.'},
+      {label:'CREB', sub:'Facteur de transcription', color:'#dcfce7', border:'#86efac',
+       text:'AMPc → PKA → phosphorylation CREB → transcription gènes précoces/tardifs → protéines structurales → croissance synaptique. Consolidation mémoire long terme.'},
+      {label:'Mémoire déclarative', sub:'Hippocampe & MTL', color:'#dcfce7', border:'#86efac',
+       text:'Épisodique (événements) + sémantique (faits). Lobe temporal médian : hippocampe, cortex entorhinal, périrhinal, parahippocampique. Consolidation systémique : transfert hippocampe → néocortex.'}
+    ]
+  }
+];
+
+function buildMindmap() {
+  const root = document.getElementById('mm-root');
+  root.innerHTML = '';
+
+  mindmapData.forEach(branch => {
+    const branchEl = document.createElement('div');
+    branchEl.className = 'mm-branch';
+    branchEl.style.borderColor = branch.border;
+
+    branchEl.innerHTML = `
+      <div class="mm-branch-header" style="background:${branch.bg};border-bottom:1px solid ${branch.border}">
+        <div class="mm-branch-title">
+          <span class="dot" style="background:${branch.color}"></span>
+          <div>
+            <div style="color:${branch.color}">${branch.label}</div>
+            <div style="font-size:10px;font-weight:400;color:#888;margin-top:2px">${branch.author}</div>
+          </div>
+        </div>
+        <span class="mm-arrow">▶</span>
+      </div>
+      <div class="mm-children"></div>
+    `;
+
+    const header = branchEl.querySelector('.mm-branch-header');
+    const children = branchEl.querySelector('.mm-children');
+
+    // Build concepts
+    branch.concepts.forEach(concept => {
+      const conceptEl = document.createElement('div');
+      conceptEl.className = 'mm-concept';
+      conceptEl.style.background = concept.color;
+      conceptEl.style.borderColor = concept.border;
+      conceptEl.style.marginTop = '8px';
+
+      conceptEl.innerHTML = `
+        <div class="mm-concept-header" style="background:${concept.color}">
+          <div>
+            <div class="mm-concept-label">${concept.label}</div>
+            <div class="mm-concept-sub">${concept.sub}</div>
+          </div>
+          <span class="mm-arrow">▶</span>
+        </div>
+        <div class="mm-concept-body" style="background:${concept.color}">${concept.text}</div>
+      `;
+
+      conceptEl.querySelector('.mm-concept-header').addEventListener('click', function(e) {
+        e.stopPropagation();
+        conceptEl.classList.toggle('open');
+      });
+
+      children.appendChild(conceptEl);
+    });
+
+    header.addEventListener('click', function() {
+      branchEl.classList.toggle('open');
+    });
+
+    root.appendChild(branchEl);
+  });
+}
+
+</script>
 // DONNÉES COMPLÈTES - TOUS LES ITEMS
 const contentData = {
   nm: [
@@ -402,6 +620,7 @@ document.getElementById('reset-btn').addEventListener('click', function() {
 
 // INIT
 loadQuiz('nm');
+buildMindmap();
 ['nm', 'ms', 'pv', 'sn', 'sp', 'km'].forEach(mod => {
   if (contentData[mod] && contentData[mod][0]) {
     const detailEl = document.getElementById(`${mod}-detail`);
