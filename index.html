@@ -6,9 +6,19 @@
 <title>Neurobiologie L3 — Version complète</title>
 <style>
 * {box-sizing:border-box;margin:0;padding:0}
-body {font-family:system-ui,sans-serif;color:#1a1a1a;background:#f8f7f4;font-size:14px;padding:1.5rem;line-height:1.6}
+body {font-family:system-ui,sans-serif;color:#1a1a1a;background:#f8f7f4;font-size:14px;padding:1.5rem;padding-top:104px;line-height:1.6}
 .container {max-width:920px;margin:0 auto}
-.nav {display:flex;gap:6px;margin-bottom:1.5rem;flex-wrap:wrap}
+.quickbar {position:fixed;top:0;left:0;right:0;z-index:110;display:flex;gap:8px;align-items:center;justify-content:center;background:#1a1a1a;padding:8px 12px}
+.quickbar button {width:38px;height:38px;border-radius:10px;border:none;background:#2e2e2e;color:#fff;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s}
+.quickbar button:active {background:#444}
+.quickbar button:disabled {opacity:.35;cursor:default}
+.quickbar button:disabled:active {background:#2e2e2e}
+.quickbar .qb-home {background:#3b82f6}
+.quickbar .qb-home:active {background:#2563eb}
+.nav {position:fixed;top:54px;left:0;right:0;z-index:100;display:flex;gap:6px;flex-wrap:nowrap;overflow-x:auto;-webkit-overflow-scrolling:touch;background:#f8f7f4;padding:10px 12px;border-bottom:1px solid #ddd;box-shadow:0 2px 8px rgba(0,0,0,.04);scrollbar-width:thin}
+.nav::-webkit-scrollbar {height:4px}
+.nav::-webkit-scrollbar-thumb {background:#ccc;border-radius:2px}
+.nav .tab {flex-shrink:0}
 .tab {padding:8px 14px;border:1px solid #ccc;border-radius:20px;background:#fff;color:#555;font-size:12px;cursor:pointer;transition:all .2s;font-weight:500}
 .tab:hover {border-color:#999}
 .tab.active {background:#dbeafe;color:#1d4ed8;border-color:#93c5fd;font-weight:600}
@@ -69,9 +79,12 @@ h2 {font-size:18px;font-weight:600;margin-bottom:12px;color:#1d4ed8}
 .quiz-module-btn.active {background:#dbeafe;color:#1d4ed8;border-color:#93c5fd;font-weight:600}
 .module-badge {display:inline-block;font-size:10px;padding:4px 11px;border-radius:9px;background:#f1f0ed;color:#888;border:1px solid #ddd;margin-bottom:12px;font-weight:600}
 @media (max-width:600px) {
-  body {padding:1rem;font-size:13px}
+  body {padding:1rem;padding-top:92px;font-size:13px}
   h1 {font-size:20px !important}
   h2 {font-size:16px}
+  .quickbar {padding:6px 10px}
+  .quickbar button {width:34px;height:34px;font-size:14px}
+  .nav {top:48px;padding:8px 10px}
   .tab {padding:6px 10px;font-size:11px}
   .card {padding:10px}
   .card .label {font-size:12px}
@@ -82,6 +95,11 @@ h2 {font-size:18px;font-weight:600;margin-bottom:12px;color:#1d4ed8}
 </style>
 </head>
 <body>
+<div class="quickbar" id="quick-bar">
+  <button id="qb-back" title="Retour"><span>←</span></button>
+  <button id="qb-forward" title="Avancer"><span>→</span></button>
+  <button class="qb-home" id="qb-home" title="Accueil"><span>⌂</span></button>
+</div>
 <div class="container">
 
 <h1 style="font-size:24px;font-weight:700;margin-bottom:10px;color:#1d4ed8">Neurobiologie L3 — Interface complète unifiée</h1>
@@ -683,17 +701,85 @@ quizData.all = [...quizData.nm, ...quizData.ms, ...quizData.pv];
 let currentQuizModule = 'nm';
 let userAnswers = {};
 
-// NAVIGATION PRINCIPALE
+// NAVIGATION PRINCIPALE — pile interne fiable (indépendante du support history.pushState,
+// qui peut échouer silencieusement en environnement file:// local) + boutons retour/avant/accueil
+let navStack = ['0'];
+let navStackPos = 0;
+
+function updateQuickbarState() {
+  document.getElementById('qb-back').disabled = (navStackPos <= 0);
+  document.getElementById('qb-forward').disabled = (navStackPos >= navStack.length - 1);
+}
+
+function renderPanel(panelIndex) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  const targetTab = document.querySelector(`.tab[data-panel="${panelIndex}"]`);
+  if (targetTab) targetTab.classList.add('active');
+
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  const targetPanel = document.querySelector(`.panel[data-panel-id="${panelIndex}"]`);
+  if (targetPanel) targetPanel.classList.add('active');
+
+  window.scrollTo({top: 0, behavior: 'smooth'});
+}
+
+// Navigation "avant" (nouveau clic d'onglet) : tronque la pile après la position courante, puis empile
+function goToPanel(panelIndex) {
+  if (navStack[navStackPos] === panelIndex) { renderPanel(panelIndex); return; }
+  navStack = navStack.slice(0, navStackPos + 1);
+  navStack.push(panelIndex);
+  navStackPos = navStack.length - 1;
+  renderPanel(panelIndex);
+  updateQuickbarState();
+
+  try {
+    history.pushState({panel: panelIndex}, '', `#panel-${panelIndex}`);
+  } catch (err) {
+    // Échec silencieux (ex: SecurityError sur file://) : la pile interne prend le relais,
+    // donc les boutons ←/→ de la quickbar restent fonctionnels même si l'historique navigateur échoue.
+  }
+}
+
 document.getElementById('main-nav').addEventListener('click', function(e) {
   if (e.target.classList.contains('tab')) {
-    const panelIndex = e.target.getAttribute('data-panel');
-    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-    e.target.classList.add('active');
-    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-    document.querySelector(`.panel[data-panel-id="${panelIndex}"]`).classList.add('active');
-    window.scrollTo({top: 0, behavior: 'smooth'});
+    goToPanel(e.target.getAttribute('data-panel'));
   }
 });
+
+// Boutons retour / avant / accueil
+document.getElementById('qb-back').addEventListener('click', function() {
+  if (navStackPos > 0) {
+    navStackPos--;
+    renderPanel(navStack[navStackPos]);
+    updateQuickbarState();
+  }
+});
+
+document.getElementById('qb-forward').addEventListener('click', function() {
+  if (navStackPos < navStack.length - 1) {
+    navStackPos++;
+    renderPanel(navStack[navStackPos]);
+    updateQuickbarState();
+  }
+});
+
+document.getElementById('qb-home').addEventListener('click', function() {
+  goToPanel('0');
+});
+
+// Le bouton retour/avant natif du navigateur reste branché quand l'historique fonctionne (hors file://)
+window.addEventListener('popstate', function(e) {
+  const panelIndex = (e.state && e.state.panel !== undefined) ? e.state.panel : '0';
+  renderPanel(panelIndex);
+});
+
+try {
+  history.replaceState({panel: '0'}, '', '#panel-0');
+} catch (err) {
+  // Échec silencieux : voir note ci-dessus
+}
+
+updateQuickbarState();
 
 // CARTES DÉTAILS
 document.querySelectorAll('.card').forEach(card => {
